@@ -45,7 +45,7 @@ int PluginManager::loadAll()
 
 IPlugin* PluginManager::loadOne(const QString& filePath)
 {
-    auto loader = std::make_unique<QPluginLoader>(filePath);
+    auto loader = QSharedPointer<QPluginLoader>::create(filePath);
 
     // 检查 IID 是否匹配
     if (loader->metaData().value("IID").toString() != IPLUGIN_IID) {
@@ -74,7 +74,7 @@ IPlugin* PluginManager::loadOne(const QString& filePath)
     }
 
     Entry entry;
-    entry.loader = std::move(loader);
+    entry.loader = loader;    // QSharedPointer 可复制，QMap 不再报错
     entry.ptr    = p;
     m_plugins.insert(p->pluginId(), entry);
 

@@ -4,7 +4,9 @@
 #include <QObject>
 #include <QDir>
 #include <QStringList>
-#include <memory>
+#include <QMap>
+#include <QPluginLoader>
+#include <QSharedPointer>
 
 class IPlugin;
 
@@ -54,7 +56,7 @@ private:
     QDir m_pluginDir;
 
     struct Entry {
-        std::unique_ptr<QPluginLoader> loader;
+        QSharedPointer<QPluginLoader> loader;   ///< 共享指针 —— QMap 要求值类型可复制
         IPlugin* ptr = nullptr;
     };
     QMap<QString, Entry> m_plugins;
