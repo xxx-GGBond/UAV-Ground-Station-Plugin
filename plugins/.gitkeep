@@ -1,0 +1,20 @@
+# 插件目录
+
+# 此目录存放所有插件动态库（.dll / .so）
+# 每个插件应在独立的子目录中开发，例如：
+#
+# plugins/
+#   ├── TelemetryPlugin/      # 遥测数据显示插件
+#   │   ├── TelemetryPlugin.h
+#   │   └── TelemetryPlugin.cpp
+#   ├── MapPlugin/             # 地图显示插件
+#   │   ├── MapPlugin.h
+#   │   └── MapPlugin.cpp
+#   └── MissionPlannerPlugin/  # 任务规划插件
+#       ├── MissionPlannerPlugin.h
+#       └── MissionPlannerPlugin.cpp
+#
+# 注意：
+# 1. 插件之间不可互相依赖（不可包含对方头文件）
+# 2. 插件不可包含 core/ 目录下的任何文件
+# 3. 插件只能依赖 interfaces/ 和 sdk/ 目录

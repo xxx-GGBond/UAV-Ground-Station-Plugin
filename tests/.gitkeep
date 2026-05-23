@@ -1,0 +1,15 @@
+# 单元测试
+
+# 测试目录结构与源码目录一一对应：
+#
+# tests/
+#   ├── CMakeLists.txt        # 测试项目构建配置
+#   ├── core/
+#   │   ├── tst_PluginManager.cpp
+#   │   └── tst_CommunicationHub.cpp
+#   ├── sdk/
+#   │   └── tst_MavLinkProtocol.cpp
+#   └── plugins/
+#       └── ...
+#
+# 使用 Qt Test 框架：https://doc.qt.io/qt-5/qtest.html

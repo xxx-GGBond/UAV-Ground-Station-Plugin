@@ -1,0 +1,11 @@
+# 第三方依赖库
+
+# 此目录用于存放不可通过包管理器获取的第三方库源码，例如：
+#
+# third_party/
+#   └── mavlink/              # MAVLink 官方 C 库
+#       ├── common/           # 通用消息定义
+#       └── ardupilotmega/    # ArduPilot 方言消息定义
+#
+# MAVLink 库获取方式：
+#   git submodule add https://github.com/mavlink/c_library_v2.git third_party/mavlink
