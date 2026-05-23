@@ -60,7 +60,8 @@ compile_commands.json
 
 # vcpkg
 vcpkg_installed/
-
+.qtcreator /
+.idea/
 # debug information files
 *.dwo
 
