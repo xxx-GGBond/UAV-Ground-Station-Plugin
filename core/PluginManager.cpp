@@ -1,7 +1,6 @@
 ﻿#include "PluginManager.h"
 #include "interfaces/IPlugin.h"
 
-#include <QPluginLoader>
 #include <QDebug>
 #include <QFileInfo>
 
@@ -9,7 +8,7 @@ PluginManager::PluginManager(const QString& pluginDir, QObject* parent)
     : QObject(parent)
     , m_pluginDir(pluginDir)
 {
-    qDebug() << "[PluginManager] 初始化，搜索目录:" << m_pluginDir.absolutePath();
+    qDebug() << "[PluginManager] 初始化，绝对路径:" << m_pluginDir.absolutePath();
 }
 
 PluginManager::~PluginManager()
@@ -32,70 +31,82 @@ int PluginManager::loadAll()
 #endif
 
     const QFileInfoList files = m_pluginDir.entryInfoList(filters, QDir::Files);
+    qDebug() << "[PluginManager] 扫描到" << files.size() << "个候选文件";
+
     int count = 0;
     for (const QFileInfo& info : files) {
+        qDebug() << "[PluginManager] 尝试加载:" << info.absoluteFilePath();
         if (loadOne(info.absoluteFilePath())) {
             ++count;
         }
     }
-
-    qDebug() << "[PluginManager] 扫描完成:" << count << "/" << files.size() << "个插件加载成功";
+    qDebug() << "[PluginManager] 扫描完成，成功:" << count << "/" << files.size();
     return count;
 }
 
 IPlugin* PluginManager::loadOne(const QString& filePath)
 {
-    auto loader = QSharedPointer<QPluginLoader>::create(filePath);
+    auto* loader = new QPluginLoader(filePath, this);
 
-    // 检查 IID 是否匹配
-    if (loader->metaData().value("IID").toString() != IPLUGIN_IID) {
-        qWarning() << "[PluginManager] IID 不匹配，跳过:" << filePath;
+    // 先检查 loader 自身的元数据
+    const QJsonObject meta = loader->metaData();
+    const QString iid = meta.value("IID").toString();
+    qDebug() << "[PluginManager]   插件 IID:" << iid << "  期望:" << IPLUGIN_IID;
+
+    if (iid != IPLUGIN_IID) {
+        qWarning() << "[PluginManager]   IID 不匹配，跳过";
+        delete loader;
         return nullptr;
     }
 
     QObject* instance = loader->instance();
     if (!instance) {
-        qWarning() << "[PluginManager] 加载失败:" << filePath
-                     << "错误:" << loader->errorString();
+        qWarning() << "[PluginManager]   加载失败:" << loader->errorString();
+        delete loader;
         return nullptr;
     }
 
     IPlugin* p = qobject_cast<IPlugin*>(instance);
     if (!p) {
-        qWarning() << "[PluginManager] 未实现 IPlugin:" << filePath;
+        qWarning() << "[PluginManager]   qobject_cast<IPlugin*> 失败";
         loader->unload();
+        delete loader;
         return nullptr;
     }
 
     if (!p->initialize()) {
-        qWarning() << "[PluginManager] 插件初始化失败:" << p->pluginId();
+        qWarning() << "[PluginManager]   插件 initialize() 返回 false";
         loader->unload();
+        delete loader;
         return nullptr;
     }
 
     Entry entry;
-    entry.loader = loader;    // QSharedPointer 可复制，QMap 不再报错
+    entry.loader = loader;
     entry.ptr    = p;
     m_plugins.insert(p->pluginId(), entry);
 
-    qDebug() << "[PluginManager] 加载成功:" << p->pluginId() << p->pluginName();
+    qDebug() << "[PluginManager]   ✅ 成功:" << p->pluginId() << p->pluginName();
     emit pluginLoaded(p->pluginId());
     return p;
 }
 
 bool PluginManager::unload(const QString& pluginId)
 {
-    if (!m_plugins.contains(pluginId)) {
-        return false;
-    }
+    if (!m_plugins.contains(pluginId)) return false;
 
     Entry& e = m_plugins[pluginId];
-    if (e.ptr) e.ptr->shutdown();
-    if (e.loader) e.loader->unload();
-    m_plugins.remove(pluginId);
 
-    qDebug() << "[PluginManager] 已卸载:" << pluginId;
     emit pluginUnloaded(pluginId);
+
+    if (e.ptr) e.ptr->shutdown();
+    if (e.loader) {
+        e.loader->unload();
+        delete e.loader;
+    }
+
+    m_plugins.remove(pluginId);
+    qDebug() << "[PluginManager] 已卸载:" << pluginId;
     return true;
 }
 
@@ -114,6 +125,5 @@ QStringList PluginManager::loadedIds() const
 
 IPlugin* PluginManager::plugin(const QString& pluginId) const
 {
-    auto it = m_plugins.find(pluginId);
-    return (it != m_plugins.end()) ? it.value().ptr : nullptr;
+    return m_plugins.value(pluginId).ptr;
 }

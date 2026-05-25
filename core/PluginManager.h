@@ -6,35 +6,24 @@
 #include <QStringList>
 #include <QMap>
 #include <QPluginLoader>
-#include <QSharedPointer>
 
 class IPlugin;
 
 /**
- * @brief 插件管理器 —— 负责插件的发现、加载、卸载
+ * @brief 插件管理器 —— 扫描 plugins/ 目录并加载 Qt 插件
  *
- * 使用 Qt 的 QPluginLoader 在运行时动态加载 .dll/.so 插件文件，
- * 通过 qobject_cast<IPlugin*> 映射到抽象接口。
- *
- * 线程安全：所有操作必须在主线程中执行。
+ * 使用 QPluginLoader 运行时加载 .dll，通过 qobject_cast<IPlugin*> 映射接口。
  */
 class PluginManager : public QObject
 {
     Q_OBJECT
 
 public:
-    /**
-     * @param pluginDir 插件搜索目录（默认 "./plugins"）
-     */
-    explicit PluginManager(const QString& pluginDir = "./plugins",
-                           QObject* parent = nullptr);
+    explicit PluginManager(const QString& pluginDir, QObject* parent = nullptr);
     ~PluginManager() override;
 
-    /// 扫描插件目录并加载所有有效插件，返回成功加载的数量
+    /// 扫描目录并加载所有有效插件，返回成功数量
     int loadAll();
-
-    /// 加载单个插件文件，成功返回接口指针（所有权归 PluginManager）
-    IPlugin* loadOne(const QString& filePath);
 
     /// 卸载指定插件
     bool unload(const QString& pluginId);
@@ -42,10 +31,10 @@ public:
     /// 卸载全部插件
     void unloadAll();
 
-    /// 获取已加载的插件 ID 列表
+    /// 已加载的插件 ID 列表
     QStringList loadedIds() const;
 
-    /// 通过插件 ID 获取接口指针（未加载返回 nullptr）
+    /// 根据 ID 获取插件接口指针
     IPlugin* plugin(const QString& pluginId) const;
 
 signals:
@@ -53,11 +42,13 @@ signals:
     void pluginUnloaded(const QString& pluginId);
 
 private:
+    IPlugin* loadOne(const QString& filePath);
+
     QDir m_pluginDir;
 
     struct Entry {
-        QSharedPointer<QPluginLoader> loader;   ///< 共享指针 —— QMap 要求值类型可复制
-        IPlugin* ptr = nullptr;
+        QPluginLoader* loader = nullptr;
+        IPlugin*       ptr    = nullptr;
     };
     QMap<QString, Entry> m_plugins;
 };

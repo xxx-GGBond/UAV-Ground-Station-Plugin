@@ -2,20 +2,18 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <memory>
 
 class PluginManager;
-class IParameterProvider;
+class LinkManager;
+class MavlinkService;
 
 /**
- * @brief 主窗口 —— 地面站宿主程序的主界面
+ * @brief 地面站主窗口 —— 负责初始化核心服务与插件系统
  *
- * 只负责：
- * 1. 启动时加载插件
- * 2. 提供菜单栏、状态栏等框架 UI
- * 3. 管理插件的生命周期
- *
- * 所有业务逻辑（如参数读写）由插件实现，主窗口不包含业务代码。
+ * 按顺序初始化：
+ *   1. PluginManager  —— 扫描并加载 plugins/ 目录下的 Qt 插件
+ *   2. LinkManager     —— 管理串口/UDP 等通信链路
+ *   3. MavlinkService  —— MAVLink 协议处理（当前为占位实现）
  */
 class MainWindow : public QMainWindow
 {
@@ -25,13 +23,16 @@ public:
     explicit MainWindow(QWidget* parent = nullptr);
     ~MainWindow() override;
 
+    /// 初始化所有核心组件，返回 true 表示成功
     bool initialize();
 
 protected:
     void closeEvent(QCloseEvent* event) override;
 
 private:
-    std::unique_ptr<PluginManager> m_pluginMgr;
+    PluginManager*  m_pluginMgr  = nullptr;
+    LinkManager*    m_linkMgr    = nullptr;
+    MavlinkService* m_mavlinkSvc = nullptr;
 };
 
 #endif // MAINWINDOW_H
